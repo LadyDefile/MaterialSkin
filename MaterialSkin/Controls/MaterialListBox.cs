@@ -37,7 +37,7 @@ namespace MaterialSkin.Controls
         private bool _multiKeyDown;
         private int _hoveredItem;
         private MaterialScrollBar _scrollBar;
-        private bool _smoothScrolling = false;
+        private bool _smoothScrolling = true;
         private object _selectedValue;
 
         private bool _updating=false;
