@@ -37,6 +37,7 @@ namespace MaterialSkin.Controls
         private bool _multiKeyDown;
         private int _hoveredItem;
         private MaterialScrollBar _scrollBar;
+        private bool _smoothScrolling = false;
         private object _selectedValue;
 
         private bool _updating=false;
@@ -241,6 +242,19 @@ namespace MaterialSkin.Controls
             }
         }
 
+        [Category("Material Skin"), DefaultValue(true)]
+        [Description("Enables Smoothly Scrolling")]
+        public bool SmoothScrolling
+        {
+            get { return _smoothScrolling; }
+            set
+            {
+                _smoothScrolling = value;
+                UpdateItemSpecs();
+                Invalidate();
+            }
+        }
+
         #endregion Properties
 
         #region Constructors
@@ -377,8 +391,15 @@ namespace MaterialSkin.Controls
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
             Rectangle mainRect = new Rectangle(0, 0, Width - (ShowBorder ? 1 : 0), Height - (ShowBorder ? 1 : 0));
 
-            int lastItem = (_scrollBar.Value / _itemHeight) + (Height / _itemHeight) + 1 > Items.Count ? Items.Count : (_scrollBar.Value / _itemHeight) + (Height / _itemHeight) + 1;
             int firstItem = _scrollBar.Value / _itemHeight < 0 ? 0 : (_scrollBar.Value / _itemHeight);
+
+            // Account for partially visible items.
+            int itemOffset = SmoothScrolling ? _scrollBar.Value - (firstItem * _itemHeight) : 0;
+
+            // Calculate the last item
+            int lastItem = (_scrollBar.Value / _itemHeight) + ((Height + itemOffset) / _itemHeight) + 1 > Items.Count ?
+            Items.Count :
+            (_scrollBar.Value / _itemHeight) + ((Height + itemOffset) / _itemHeight) + 1;
 
             g.FillRectangle(Enabled ? SkinManager.BackgroundBrush : SkinManager.BackgroundDisabledBrush, mainRect);
 
@@ -409,7 +430,7 @@ namespace MaterialSkin.Controls
                 string itemText = Items[i].Text;
                 string itemSecondaryText = Items[i].SecondaryText;
 
-                Rectangle itemRect = new Rectangle(0, (i - firstItem) * _itemHeight, Width - (_showScrollBar && _scrollBar.Visible ? _scrollBar.Width : 0), _itemHeight);
+                Rectangle itemRect = new Rectangle(0, (i - firstItem) * _itemHeight - itemOffset, Width - (_showScrollBar && _scrollBar.Visible ? _scrollBar.Width : 0), _itemHeight);
 
                 if (MultiSelect && _indicates.Count != 0)
                 {
@@ -675,7 +696,8 @@ namespace MaterialSkin.Controls
             Focus();
             if (e.Button == MouseButtons.Left)
             {
-                int index = _scrollBar.Value / _itemHeight + e.Location.Y / _itemHeight;
+                int itemOffset = SmoothScrolling ? _scrollBar.Value % _itemHeight: 0;
+                int index = _scrollBar.Value / _itemHeight + (e.Location.Y+itemOffset) / _itemHeight;
                 if (index >= 0 && index < _items.Count)
                 {
                     if (MultiSelect && _multiKeyDown)
@@ -798,7 +820,8 @@ namespace MaterialSkin.Controls
 
         private void _updateHoveredItem(MouseEventArgs e)
         {
-            int index = _scrollBar.Value / _itemHeight + e.Location.Y / _itemHeight;
+            int itemOffset = SmoothScrolling ? _scrollBar.Value % _itemHeight: 0;
+            int index = _scrollBar.Value / _itemHeight + (e.Location.Y+itemOffset) / _itemHeight;
 
             if (index >= Items.Count)
             {
